@@ -41,6 +41,10 @@
                         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                         <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
                         <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+                        <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+                        <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+                        <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+                        <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
                         
                         <style>
                             /* 
@@ -1744,17 +1748,168 @@
                                 });
                             }
 
-                            function exportReportsToExcel() {
+                            async function exportReportsToExcel() {
                                 const from = document.getElementById('reports-date-from').value;
                                 const to = document.getElementById('reports-date-to').value;
                                 const selectedBranch = document.getElementById('reports-branch-filter').value;
-                                let ops = Object.values(complaintsCache).filter(o => o.date >= from && o.date <= to);
-                                // فلترة بالفرع المختار
-                                if(selectedBranch !== 'ALL') {
-                                    ops = ops.filter(o => o.branch === selectedBranch);
+
+                                if (!from || !to) {
+                                    Swal.fire('تنبيه', 'يرجى تحديد الفترة أولاً', 'warning');
+                                    return;
                                 }
-                                const ws = XLSX.utils.json_to_sheet(ops.map(o => ({ 'Date':o.date, 'Time':o.timeOnly, 'Branch':o.branch, 'Order':o.order, 'Customer':o.customer, 'Type':o.type, 'Status':o.status })));
-                                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Report"); XLSX.writeFile(wb, `CMS_Report_${from}.xlsx`);
+
+                                renderSystemToast("جاري تحضير ملف الإكسل الملون...", "success");
+
+                                const workbook = new ExcelJS.Workbook();
+                                const worksheet = workbook.addWorksheet('تقرير الشكاوى الشامل', {
+                                    views: [{ rightToLeft: true }] // ضبط الاتجاه من اليمين لليسار
+                                });
+
+                                // --- تجهيز البيانات ---
+                                const dSnap = await dbHub.ref('daily_stats').get();
+                                const allDays = dSnap.val() || {};
+                                const ops = Object.values(complaintsCache).filter(o => {
+                                    const matchDate = o.date >= from && o.date <= to;
+                                    const matchBranch = (selectedBranch === "ALL") ? true : (o.branch === selectedBranch);
+                                    return matchDate && matchBranch;
+                                });
+
+                                const categories = ["تأخير", "سوء خدمة", "ناقص", "سوء تعبئة", "خطأ في الطلب", "خطأ في الباقي", "جودة", "جسم غريب", "سوء سلوك", "مندوب", "طلب بارد", "رسيبي", "تأخير شكوى", "تواصل من الفرع", "سوشيال"];
+                                const serviceTypes = ["HD", "Din In", "PK", "TA"];
+
+                                // --- الجدول الأول: تحليل شكاوى المطاعم ---
+                                worksheet.mergeCells('A1:U1');
+                                const mainTitle = worksheet.getCell('A1');
+                                mainTitle.value = 'تحليل شكاوى المطاعم التفصيلي الشامل';
+                                mainTitle.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+                                mainTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1D4ED8' } };
+                                mainTitle.alignment = { horizontal: 'center' };
+
+                                // الرأس (Headers)
+                                const headerRow = ["المطعم", ...categories, ...serviceTypes, "إجمالي المطعم"];
+                                const headerRowCells = worksheet.addRow(headerRow);
+                                headerRowCells.eachCell((cell, colNumber) => {
+                                    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1D4ED8' } }; // اللون الأزرق
+                                    cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+                                    cell.alignment = { horizontal: 'center' };
+                                });
+
+                                // البيانات
+                                let grandTotals = { total: 0 };
+                                categories.forEach(c => grandTotals[c] = 0);
+                                serviceTypes.forEach(s => grandTotals[s] = 0);
+
+                                branchListCache.forEach(branch => {
+                                    const branchOps = ops.filter(o => o.branch === branch);
+                                    if (branchOps.length === 0) return;
+
+                                    let rowData = [branch];
+                                    let branchSum = 0;
+                                    categories.forEach(cat => {
+                                        const count = branchOps.filter(o => o.type === cat).length;
+                                        rowData.push(count);
+                                        grandTotals[cat] += count;
+                                        branchSum += count;
+                                    });
+                                    serviceTypes.forEach(srv => {
+                                        const count = branchOps.filter(o => o.service_type === srv).length;
+                                        rowData.push(count);
+                                        grandTotals[srv] += count;
+                                    });
+                                    rowData.push(branchSum);
+                                    grandTotals.total += branchSum;
+
+                                    const addedRow = worksheet.addRow(rowData);
+                                    addedRow.getCell(addedRow.cellCount).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF59E0B' } }; // اللون البرتقالي للإجمالي
+                                    addedRow.eachCell(cell => {
+                                        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+                                        cell.alignment = { horizontal: 'center' };
+                                    });
+                                });
+
+                                // سطر الإجمالي العام
+                                const footerData = ["الاجمالى العام", ...categories.map(c => grandTotals[c]), ...serviceTypes.map(s => grandTotals[s]), grandTotals.total];
+                                const footerRow = worksheet.addRow(footerData);
+                                footerRow.eachCell(cell => {
+                                    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A2E91' } }; // كحلي غامق
+                                    cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+                                    cell.alignment = { horizontal: 'center' };
+                                });
+
+                                // --- الجدول الثاني: نسبة الشكاوى ---
+                                worksheet.addRow([]); // سطر فارغ
+                                worksheet.addRow(["نسبة شكاوى خدمة التوصيل للفروع"]).font = { bold: true, size: 14 };
+                                const effHeader = worksheet.addRow(["المطعم", "العمليات", "الشكاوى", "النسبة"]);
+                                effHeader.eachCell(cell => {
+                                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } };
+                                    cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                                });
+
+                                branchListCache.forEach(branch => {
+                                    let orders = 0;
+                                    Object.keys(allDays).forEach(d => { if(d >= from && d <= to) orders += parseInt(allDays[d][branch] || 0); });
+                                    const complaints = ops.filter(o => o.branch === branch).length;
+                                    if(orders > 0 || complaints > 0) {
+                                        const r = worksheet.addRow([branch, orders, complaints, (orders > 0 ? ((complaints / orders) * 100).toFixed(2) : 0) + "%"]);
+                                        r.alignment = { horizontal: 'center' };
+                                    }
+                                });
+
+                                // --- إدراج الرسم البياني كصورة (الحل النهائي للوضوح التام) ---
+                                const canvas = document.getElementById('master-reports-canvas');
+                                if (canvas && analyticsChartInstance) {
+                                    // 1. حفظ الألوان الأصلية (البيضاء)
+                                    const oldXColor = analyticsChartInstance.options.scales.x.ticks.color;
+                                    const oldYColor = analyticsChartInstance.options.scales.y.ticks.color;
+                                    const oldDataColor = analyticsChartInstance.options.plugins.datalabels.color;
+                                    const oldXFont = analyticsChartInstance.options.scales.x.ticks.font;
+
+                                    // 2. تحويل كل شيء للأسود وتكبير الخط للوضوح في الإكسل
+                                    analyticsChartInstance.options.scales.x.ticks.color = '#000000';
+                                    analyticsChartInstance.options.scales.y.ticks.color = '#000000';
+                                    analyticsChartInstance.options.plugins.datalabels.color = '#000000';
+
+                                    // تكبير الخط لأسماء الفروع (روكسي، فيصل...)
+                                    analyticsChartInstance.options.scales.x.ticks.font = { size: 16, weight: 'bold' };
+                                    analyticsChartInstance.options.scales.y.ticks.font = { size: 14 };
+
+                                    // إظهار خطوط الشبكة بلون رمادي واضح بدلاً من الاختفاء
+                                    analyticsChartInstance.options.scales.x.grid = { color: '#cccccc' };
+                                    analyticsChartInstance.options.scales.y.grid = { color: '#cccccc' };
+
+                                    // تحديث الرسم فوراً لتطبيق الألوان السوداء
+                                    analyticsChartInstance.update(0);
+
+                                    // 3. التقاط الصورة بجودة عالية
+                                    const chartImage = canvas.toDataURL('image/png', 1.0);
+                                    const imageId = workbook.addImage({
+                                        base64: chartImage,
+                                        extension: 'png',
+                                    });
+
+                                    // 4. إرجاع الألوان الأصلية للموقع (عشان يرجع أبيض في الوضع الليلي)
+                                    analyticsChartInstance.options.scales.x.ticks.color = oldXColor;
+                                    analyticsChartInstance.options.scales.y.ticks.color = oldYColor;
+                                    analyticsChartInstance.options.plugins.datalabels.color = oldDataColor;
+                                    analyticsChartInstance.options.scales.x.ticks.font = oldXFont;
+                                    analyticsChartInstance.options.scales.x.grid = { color: '#333' }; // رجوع اللون الغامق
+                                    analyticsChartInstance.options.scales.y.grid = { color: '#333' };
+
+                                    analyticsChartInstance.update(0);
+
+                                    // 5. وضع الصورة في الإكسل (بمساحة أكبر)
+                                    // tl: rowCount + 2 (تحت الجدول بصفين)
+                                    worksheet.addImage(imageId, {
+                                        tl: { col: 0, row: worksheet.rowCount + 2 },
+                                        ext: { width: 900, height: 450 } // حجم كبير وواضح
+                                    });
+                                }
+
+                                // --- حفظ الملف ---
+                                const buffer = await workbook.xlsx.writeBuffer();
+                                saveAs(new Blob([buffer]), `تقرير_CMS_شامل_${from}.xlsx`);
                             }
 
                             // Ticket Action Modals
