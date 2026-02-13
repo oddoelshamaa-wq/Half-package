@@ -37,6 +37,30 @@
                         };
                         </script>
 
+                        <script>
+                        // منع القائمة اليمنى (Right Click)
+                        document.addEventListener('contextmenu', event => event.preventDefault());
+
+                        // منع اختصارات لوحة المفاتيح المشهورة لفتح Inspect Element
+                        document.onkeydown = function(e) {
+                            if (e.keyCode == 123) { // F12
+                                return false;
+                            }
+                            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) { // Ctrl+Shift+I
+                                return false;
+                            }
+                            if (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) { // Ctrl+Shift+C
+                                return false;
+                            }
+                            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) { // Ctrl+Shift+J
+                                return false;
+                            }
+                            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) { // Ctrl+U (رؤية السورس)
+                                return false;
+                            }
+                        }
+                        </script>
+
                         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
                         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                         <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
@@ -53,16 +77,16 @@
                             ========================================================================
                             */
                 :root {
-                    --primary-bg-core: #010409;
-                    --glass-surface: rgba(13, 17, 23, 0.96);
-                    --gold-master: #f59e0b;
-                    --gold-bright: #fbbf24;
-                    --accent-navy: #1d4ed8;
-                    --success-glow: #10b981;
-                    --danger-pulse: #ef4444;
-                    --text-pure: #f0f6fc;
-                    --text-muted-core: #8b949e;
-                    --border-glow-line: rgba(245, 158, 11, 0.28);
+                    --primary-bg-core: #373937;
+                    --glass-surface: rgba(55, 57, 55, 0.96);
+                    --gold-master: #e64026;
+                    --gold-bright: #ff6b6b;
+                    --accent-navy: #4ebf57;
+                    --success-glow: #4ebf57;
+                    --danger-pulse: #e64026;
+                    --text-pure: #d8dcdd;
+                    --text-muted-core: #a0a0a0;
+                    --border-glow-line: rgba(230, 64, 38, 0.28);
                     --radius-massive: 8px;
                     --shadow-depth: 0 30px 60px rgba(0,0,0,0.85), inset 0 1px 2px rgba(255,255,255,0.06);
                     --font-stack: 'Cairo', sans-serif;
@@ -79,7 +103,7 @@
 
                             ::-webkit-scrollbar { width: 10px; }
                             ::-webkit-scrollbar-track { background: var(--primary-bg-core); }
-                            ::-webkit-scrollbar-thumb { background: linear-gradient(var(--gold-master), #d97706); border-radius: 12px; border: 3px solid var(--primary-bg-core); }
+                            ::-webkit-scrollbar-thumb { background: linear-gradient(var(--gold-master), #b91c1c); border-radius: 12px; border: 3px solid var(--primary-bg-core); }
 
                             * { box-sizing: border-box; outline: none; margin: 0; padding: 0; transition: var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1); }
 
@@ -90,7 +114,7 @@
                     min-height: 100vh;
                     overflow-x: hidden;
                     font-size: 13px;
-                    background-image: radial-gradient(circle at 5% 5%, rgba(245, 158, 11, 0.08) 0%, transparent 45%), radial-gradient(circle at 95% 95%, rgba(29, 78, 216, 0.08) 0%, transparent 50%);
+                    background-image: radial-gradient(circle at 5% 5%, rgba(230, 64, 38, 0.08) 0%, transparent 45%), radial-gradient(circle at 95% 95%, rgba(78, 191, 87, 0.08) 0%, transparent 50%);
                     background-attachment: fixed;
                 }
 
@@ -2251,13 +2275,23 @@
                         function toggleSidebar() { const n = document.getElementById('system-side-nav'), d = document.getElementById('master-dimmer'); n.classList.toggle('open'); d.style.display = n.classList.contains('open') ? 'block' : 'none'; }
                         function closeAllMenus() { document.getElementById('system-side-nav').classList.remove('open'); closeSidebarControl(); }
                         function switchToAppModule(m) {
+                            // إخفاء جميع الأقسام
                             document.querySelectorAll('.nav-link-vip').forEach(b => b.classList.remove('active'));
                             document.getElementById('tab-'+m).classList.add('active');
-                            ['live','daily','archive','reports','admin'].forEach(id => document.getElementById('module-view-'+id).classList.add('hidden'));
-                            document.getElementById('module-view-'+m).classList.remove('hidden');
-                            if(m==='reports') executeAdvancedAnalyticsSequence();
-                            if(m==='daily') loadDailySnapshotData();
-                            if(window.innerWidth <= 768) closeAllMenus();
+                            ['live','daily','archive','reports','admin'].forEach(id => {
+                                if(document.getElementById('module-view-'+id))
+                                    document.getElementById('module-view-'+id).classList.add('hidden');
+                            });
+                            // إظهار القسم المطلوب
+                            const targetModule = document.getElementById('module-view-'+m);
+                            if(targetModule) targetModule.classList.remove('hidden');
+                            // تشغيل التحليل تلقائياً عند دخول صفحة التقارير
+                            if(m === 'reports') {
+                                // تأخير بسيط للتأكد من تحميل البيانات من Firebase
+                                setTimeout(() => {
+                                    executeAdvancedAnalyticsSequence();
+                                }, 500);
+                            }
                         }
                         function renderSystemToast(m, t) {
                             const b = document.getElementById('system-toast-container'), toast = document.createElement('div');
@@ -2312,6 +2346,13 @@
                                 tableBody.innerHTML += `<tr>${rowHtml}</tr>`;
                                 absoluteGrandTotal += branchTotal;
                             });
+
+                            // إذا لم يكن هناك بيانات، أضف رسالة
+                            if (absoluteGrandTotal === 0) {
+                                const noDataRow = `<tr><td colspan="${1 + categories.length + serviceTypes.length}" style="text-align:center; padding:50px; color:var(--text-muted-core); font-size:1.2rem;">لا توجد شكاوى في الفترة المحددة أو لم يتم تحديد الفروع بعد.</td></tr>`;
+                                tableBody.innerHTML = noDataRow;
+                                return;
+                            }
 
                             // سطر الإجمالي العام (أسفل الجدول - باللون الأزرق)
                             let footerHtml = `<tr style="font-weight:900; position: sticky; bottom: 0; z-index: 110; background:#1d4ed8; color:white;">
