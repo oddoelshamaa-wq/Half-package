@@ -1009,49 +1009,46 @@
 
                             function grantCoreAccess(data) {
                                 localStorage.setItem('vip_v43_secure_token', JSON.stringify(data));
-                                
-                                // === NEW PRESENCE & LOGS LOGIC ===
-                                // 1. التعامل مع الاتصال وقطع الاتصال (فتح وقفل الموقع)
+
+                                // إرسال حالة "أونلاين" فوراً إلى Firebase
                                 const presenceRef = dbHub.ref('users_presence/' + data.id);
-                                const connectedRef = dbHub.ref('.info/connected');
                                 const logsRef = dbHub.ref('access_logs');
 
-                                connectedRef.on('value', (snap) => {
-                                    if (snap.val() === true) {
-                                        // User is Online -> Set State
-                                        presenceRef.onDisconnect().update({
-                                            state: 'offline',
-                                            last_changed: firebase.database.ServerValue.TIMESTAMP
-                                        });
-                                        
-                                        // Push Disconnect Log (To happen when they disconnect)
-                                        // Note: Firebase queues this on server.
-                                        const logDisconnectRef = logsRef.push();
-                                        logDisconnectRef.onDisconnect().set({
-                                            user: data.name,
-                                            uid: data.id,
-                                            action: '🔴 أغلق الموقع (OFFLINE)',
-                                            timestamp: firebase.database.ServerValue.TIMESTAMP
-                                        });
-
-                                        // Set Online Status Now
-                                        presenceRef.set({
-                                            state: 'online',
-                                            name: data.name,
-                                            title: data.title,
-                                            last_changed: firebase.database.ServerValue.TIMESTAMP
-                                        });
-
-                                        // Push Login Log Now
-                                        logsRef.push({
-                                            user: data.name,
-                                            uid: data.id,
-                                            action: '🟢 فتح الموقع (ONLINE)',
-                                            timestamp: firebase.database.ServerValue.TIMESTAMP
-                                        });
-                                    }
+                                // تحديث الحالة عند الاتصال
+                                presenceRef.set({
+                                    state: 'online',
+                                    name: data.name,
+                                    title: data.title,
+                                    branch: data.branch,
+                                    last_changed: firebase.database.ServerValue.TIMESTAMP
                                 });
-                                
+
+                                // تسجيل اللوج (فتح الموقع)
+                                logsRef.push({
+                                    user: data.name,
+                                    uid: data.id,
+                                    branch: data.branch,
+                                    action: '🟢 فتح الموقع (ONLINE)',
+                                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                                });
+
+                                // إعداد "مسح الحالة" عند الخروج أو قفل الصفحة
+                                presenceRef.onDisconnect().update({
+                                    state: 'offline',
+                                    last_changed: firebase.database.ServerValue.TIMESTAMP
+                                });
+
+                                // تسجيل "لوج الخروج" عند قطع الاتصال
+                                const disconnectLogRef = logsRef.push();
+                                disconnectLogRef.onDisconnect().set({
+                                    user: data.name,
+                                    uid: data.id,
+                                    branch: data.branch,
+                                    action: '🔴 أغلق الموقع (OFFLINE)',
+                                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                                });
+
+                                // إعادة تحميل الصفحة للدخول للمنظومة
                                 location.reload();
                             }
 
@@ -1129,7 +1126,9 @@
 
                                     runPermissionShieldCheck(); // تشغيل الصلاحيات
 
-                                    // عند نجاح تسجيل الدخول، يجب تشغيل هذا السطر
+                                    // استدعاء تتبع التواجد فوراً
+                                    activateUserPresenceTracking(currentUserSession);
+                                    initPresenceMonitor(); // تشغيل الرادار لرؤية الآخرين
                                     initCoreDataListeners();
                                 }
                             };
