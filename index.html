@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة المشاريع | تسجيل الدخول</title>
+    <!-- استدعاء خطوط جوجل لشكل احترافي -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #1a1a2e; /* لون خلفية غامق وفخم */
+            color: #fff;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #00d2ff;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 18px;
+            text-align: center;
+            outline: none;
+            transition: 0.3s;
+            border: 1px solid transparent;
+        }
+
+        input:focus {
+            border-color: #00d2ff;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 210, 255, 0.5);
+        }
+
+        .error-msg {
+            color: #ff4d4d;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>بوابة الدخول الموحدة</h1>
+        
+        <div class="input-group">
+            <input type="text" id="code-field" placeholder="أدخل كود المشروع هنا" onkeypress="checkEnter(event)">
+        </div>
+        
+        <button onclick="redirectToProject()">دخول الآن</button>
+        
+        <p class="error-msg" id="error">عذراً، الكود الذي أدخلته غير صحيح!</p>
+
+        <div class="footer">
+            جميع الحقوق محفوظة &copy; 2024
+        </div>
+    </div>
+
+    <script>
+        function redirectToProject() {
+            const code = document.getElementById('code-field').value.trim();
+            const errorElement = document.getElementById('error');
+
+            // --- إعدادات الأكواد والروابط ---
+            const config = {
+                "abn100": "https://oddoelshamaa-wq.github.io/abn-misr/",
+                "half200": "https://oddoelshamaa-wq.github.io/Half-package/"
+            };
+
+            // التحقق من الكود
+            if (config[code]) {
+                errorElement.style.display = 'none';
+                // التوجيه للموقع المطلوب
+                window.location.href = config[code];
+            } else {
+                // إظهار رسالة خطأ
+                errorElement.style.display = 'block';
+                document.getElementById('code-field').value = '';
+            }
+        }
+
+        // وظيفة للسماح بالدخول عند الضغط على زر Enter
+        function checkEnter(event) {
+            if (event.key === "Enter") {
+                redirectToProject();
+            }
+        }
+    </script>
+
+</body>
+</html>
