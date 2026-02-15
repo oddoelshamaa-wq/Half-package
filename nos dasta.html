@@ -699,32 +699,7 @@
                                             <span id="p-name" style="color: white; font-size: 20px; font-weight: 700;">---</span>
                                         </div>
 
-                                        <!-- LICENSE MANAGEMENT SECTION (Super Admin Only) -->
-                                        <div class="massive-glass-card" style="padding:80px; margin-top:40px; border-top: 5px solid var(--danger-pulse);" id="license-admin-section" style="display:none;">
-                                            <h3 style="color:var(--danger-pulse); margin-bottom:60px;">إدارة التراخيص الشاملة</h3>
 
-                                            <div class="status-box" style="margin-bottom:30px;">
-                                                <span class="status-label" id="admin-main-status">جاري المزامنة...</span>
-                                                <div id="admin-ui-countdown" class="timer-display">00:00:00:00</div>
-                                                <div id="admin-grace-info" class="grace-indicator">⚠️ العميل يستهلك من فترة السماح حالياً</div>
-                                            </div>
-
-                                            <div style="display: flex; gap: 10px; margin-bottom:20px;">
-                                                <div style="flex:1"><label>أيام الاشتراك:</label><input type="number" id="admin-in-days" value="0"></div>
-                                                <div style="flex:1"><label>ساعات إضافية:</label><input type="number" id="admin-in-hours" value="0"></div>
-                                            </div>
-
-                                            <label>أيام السماح الاحتياطية (بعد الانتهاء):</label>
-                                            <input type="number" id="admin-in-grace" value="0">
-
-                                            <label>بيانات الدفع للتواصل:</label>
-                                            <input type="text" id="admin-in-phone" placeholder="رقم الواتساب">
-                                            <input type="text" id="admin-in-acc" placeholder="رقم الحساب">
-                                            <input type="text" id="admin-in-name" placeholder="اسم صاحب الحساب">
-
-                                            <button class="btn-vip-execute-master" onclick="adminFullActivate()">حفظ وتفعيل (الأساسي + السماح) <i class="fas fa-rocket"></i></button>
-                                            <button id="admin-lock-btn" class="btn-vip-execute-master" style="background:var(--danger-pulse);" onclick="adminToggleLock()"></button>
-                                        </div>
                                     </div>
 
                                 </div>
