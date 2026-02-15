@@ -670,28 +670,31 @@
                     </head>
                     <body>
 
-                        <!-- شاشة القفل بتصميم الصورة المرفقة -->
+                        <!-- شاشة القفل المحدثة لتطابق الصورة تماماً -->
                         <div id="license-lock-screen" style="display:none; position:fixed; inset:0; background:#0b0e14; z-index:100000; flex-direction:column; align-items:center; justify-content:center; font-family:'Cairo', sans-serif; direction:rtl;">
 
-                            <div style="width: 400px; padding: 40px; background: #161b22; border: 2px solid #ef4444; border-radius: 30px; text-align: center; box-shadow: 0 0 50px rgba(239, 68, 68, 0.2);">
+                            <!-- الكارت الرئيسي -->
+                            <div style="width: 450px; padding: 50px 40px; background: #161b22; border: 2px solid #ef4444; border-radius: 40px; text-align: center; box-shadow: 0 0 60px rgba(239, 68, 68, 0.15);">
 
-                                <h1 style="color: white; font-size: 45px; font-weight: 900; margin-bottom: 20px;">توقف النظام!</h1>
+                                <h1 style="color: white; font-size: 42px; font-weight: 900; margin-bottom: 15px; letter-spacing: -1px;">توقف النظام!</h1>
 
-                                <p id="lock-reason-text" style="color: #8b949e; font-size: 18px; margin-bottom: 30px;">انتهت فترة السماح. يرجى التواصل مع الإدارة.</p>
+                                <p id="lock-reason-text" style="color: #8b949e; font-size: 18px; margin-bottom: 35px; font-weight: 600;">انتهت فترة السماح. يرجى التواصل مع الإدارة.</p>
 
-                                <!-- كارت بيانات التواصل (نفس شكل الصورة) -->
-                                <div style="background: #0d1117; padding: 25px; border-radius: 20px; border-right: 8px solid #f59e0b; text-align: right;">
-                                    <div style="margin-bottom: 10px;">
-                                        <span style="color: white; font-weight: bold; font-size: 20px;">للتواصل:</span>
-                                        <span id="p-phone" style="color: white; font-size: 20px; font-weight: bold; margin-right: 10px;">0000000000</span>
+                                <!-- كارت بيانات التواصل (الذي يحتوي على الشريط الذهبي) -->
+                                <div style="background: #1c2128; padding: 30px; border-radius: 20px; border-right: 6px solid #f59e0b; text-align: right; position: relative; overflow: hidden;">
+                                    <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+                                        <span style="color: white; font-weight: 800; font-size: 20px;">للتواصل:</span>
+                                        <span id="p-phone" style="color: white; font-size: 20px; font-weight: 700;">0100000000</span>
                                     </div>
-                                    <div style="margin-bottom: 10px;">
-                                        <span style="color: white; font-weight: bold; font-size: 20px;">الحساب البنكي:</span>
-                                        <span id="p-acc" style="color: white; font-size: 20px; font-weight: bold; margin-right: 10px;">---</span>
+
+                                    <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+                                        <span style="color: white; font-weight: 800; font-size: 20px;">الحساب البنكي:</span>
+                                        <span id="p-acc" style="color: white; font-size: 20px; font-weight: 700;">---</span>
                                     </div>
-                                    <div>
-                                        <span style="color: white; font-weight: bold; font-size: 20px;">الاسم:</span>
-                                        <span id="p-name" style="color: white; font-size: 20px; font-weight: bold; margin-right: 10px;">---</span>
+
+                                    <div style="display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+                                        <span style="color: white; font-weight: 800; font-size: 20px;">الاسم:</span>
+                                        <span id="p-name" style="color: white; font-size: 20px; font-weight: 700;">---</span>
                                     </div>
                                 </div>
 
@@ -2597,8 +2600,6 @@
 
                         function startLicenseProtection() {
                             const lockScreen = document.getElementById('license-lock-screen');
-
-                            // إنشاء عنصر الشريط إذا لم يكن موجوداً
                             let banner = document.getElementById('license-banner');
                             if (!banner) {
                                 banner = document.createElement('div');
@@ -2608,8 +2609,6 @@
 
                             dbHub.ref('config').on('value', (snapshot) => {
                                 const config = snapshot.val() || {};
-
-                                // إيقاف أي عداد قديم لتجنب التداخل
                                 if (licenseInterval) clearInterval(licenseInterval);
 
                                 licenseInterval = setInterval(() => {
@@ -2617,49 +2616,19 @@
                                     const expiry = config.expiryDate || 0;
                                     const graceMs = (config.graceDays || 0) * 24 * 60 * 60 * 1000;
                                     const finalDeadline = expiry + graceMs;
-                                    const alertThreshold = 2 * 24 * 60 * 60 * 1000; // يومين بالملي ثانية
 
-                                    // تحديث بيانات التواصل في شاشة القفل
-                                    document.getElementById('p-phone').innerText = config.payPhone || "---";
-                                    document.getElementById('p-acc').innerText = config.accNumber || "---";
-                                    document.getElementById('p-name').innerText = config.accName || "---";
+                                    // تحديث نصوص التواصل من الفايربيز
+                                    document.getElementById('p-phone').innerText = config.payPhone || "0100060338";
+                                    document.getElementById('p-acc').innerText = config.accNumber || "222";
+                                    document.getElementById('p-name').innerText = config.accName || "أ/ تامر";
 
-                                    // المنطق البرمجي للحالات:
-
-                                    // 1. القفل النهائي (انتهاء السماح أو قفل يدوي)
                                     if (config.manualLocked || (now > finalDeadline && expiry !== 0)) {
                                         lockScreen.style.display = 'flex';
                                         banner.style.display = 'none';
-                                        document.body.classList.remove('push-content');
-                                    }
-
-                                    // 2. فترة السماح (الاشتراك انتهى لكن لسه مصلناش للـ Deadline)
-                                    else if (now > expiry && now <= finalDeadline) {
+                                    } else {
                                         lockScreen.style.display = 'none';
-                                        banner.style.display = 'flex';
-                                        banner.className = 'license-banner banner-grace';
-                                        document.body.classList.add('push-content');
-
-                                        const diff = finalDeadline - now;
-                                        banner.innerHTML = `<span><i class="fas fa-exclamation-circle"></i> انتهى الاشتراك! فترة سماح متبقية: (${formatTime(diff)})</span>`;
-                                    }
-
-                                    // 3. تنبيه قبل الانتهاء بيومين
-                                    else if (expiry - now <= alertThreshold && now < expiry) {
-                                        lockScreen.style.display = 'none';
-                                        banner.style.display = 'flex';
-                                        banner.className = 'license-banner banner-warning';
-                                        document.body.classList.add('push-content');
-
-                                        const diff = expiry - now;
-                                        banner.innerHTML = `<span><i class="fas fa-clock"></i> تنبيه: ينتهي الاشتراك خلال (${formatTime(diff)}). يرجى التجديد.</span>`;
-                                    }
-
-                                    // 4. وضع طبيعي (لسه بدري)
-                                    else {
-                                        lockScreen.style.display = 'none';
-                                        banner.style.display = 'none';
-                                        document.body.classList.remove('push-content');
+                                        // الكود الخاص بالبنر (التنبيه العلوي)
+                                        manageExpiryWarnings(now, expiry, finalDeadline);
                                     }
                                 }, 1000);
                             });
