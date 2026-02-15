@@ -31,28 +31,7 @@
                         const dbHub = firebase.database(); // هذا هو المتغير الذي يستخدمه كودك
 
                         // 4. استدعاء دالة التسمع للبيانات (يجب أن تكون موجودة ليعمل التحميل)
-                        window.onload = function() {
-                            // كود الاستقبال التلقائي من البوابة
-                            const urlParams = new URLSearchParams(window.location.search);
-                            const token = urlParams.get('access_token');
-                            if (token) {
-                                try {
-                                    const userData = JSON.parse(atob(token));
-                                    const user = userData.u;
-                                    const pass = userData.p;
-                                    // هنا نضع البيانات في الـ LocalStorage الخاص بالموقع ليظن أنك سجلت دخولك
-                                    localStorage.setItem('username', user);
-                                    localStorage.setItem('isLoggedIn', 'true');
-                                    // تنظيف الرابط من التوكن لزيادة الأمان
-                                    window.history.replaceState({}, document.title, window.location.pathname);
-
-                                    console.log("تم تسجيل الدخول تلقائياً للمستخدم: " + user);
-                                    // إذا كان موقعك يحتاج لتحديث الصفحة ليعمل، أضف السطر التالي:
-                                    // location.reload();
-                                } catch (e) {
-                                    console.error("فشل تسجيل الدخول التلقائي");
-                                }
-                            }
+                        window.onload = () => {
                             // الكود الخاص بك الذي يستدعي initCoreDataListeners()
                             initCoreDataListeners();
                         };
@@ -664,9 +643,60 @@
                                 transform: scale(1.1);
                                 box-shadow: 0 0 20px #fff;
                             }
+
+                            /* تنسيق شريط التنبيه العلوي */
+                            .license-banner {
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 40px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-weight: bold;
+                                font-size: 14px;
+                                z-index: 9998; /* تحت شاشة القفل مباشرة */
+                                direction: rtl;
+                                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                            }
+
+                            .banner-warning { background-color: #fbbf24; color: #000; } /* أصفر */
+                            .banner-grace { background-color: #ef4444; color: #fff; }    /* أحمر */
+
+                            /* دفع محتوى الموقع للأسفل عند ظهور الشريط */
+                            .push-content { margin-top: 40px !important; }
                         </style>
                     </head>
                     <body>
+
+                        <!-- شاشة القفل بتصميم الصورة المرفقة -->
+                        <div id="license-lock-screen" style="display:none; position:fixed; inset:0; background:#0b0e14; z-index:100000; flex-direction:column; align-items:center; justify-content:center; font-family:'Cairo', sans-serif; direction:rtl;">
+
+                            <div style="width: 400px; padding: 40px; background: #161b22; border: 2px solid #ef4444; border-radius: 30px; text-align: center; box-shadow: 0 0 50px rgba(239, 68, 68, 0.2);">
+
+                                <h1 style="color: white; font-size: 45px; font-weight: 900; margin-bottom: 20px;">توقف النظام!</h1>
+
+                                <p id="lock-reason-text" style="color: #8b949e; font-size: 18px; margin-bottom: 30px;">انتهت فترة السماح. يرجى التواصل مع الإدارة.</p>
+
+                                <!-- كارت بيانات التواصل (نفس شكل الصورة) -->
+                                <div style="background: #0d1117; padding: 25px; border-radius: 20px; border-right: 8px solid #f59e0b; text-align: right;">
+                                    <div style="margin-bottom: 10px;">
+                                        <span style="color: white; font-weight: bold; font-size: 20px;">للتواصل:</span>
+                                        <span id="p-phone" style="color: white; font-size: 20px; font-weight: bold; margin-right: 10px;">0000000000</span>
+                                    </div>
+                                    <div style="margin-bottom: 10px;">
+                                        <span style="color: white; font-weight: bold; font-size: 20px;">الحساب البنكي:</span>
+                                        <span id="p-acc" style="color: white; font-size: 20px; font-weight: bold; margin-right: 10px;">---</span>
+                                    </div>
+                                    <div>
+                                        <span style="color: white; font-weight: bold; font-size: 20px;">الاسم:</span>
+                                        <span id="p-name" style="color: white; font-size: 20px; font-weight: bold; margin-right: 10px;">---</span>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
 
                         <div id="system-toast-container"></div>
                         <div id="master-dimmer" class="dimmer-overlay-master" onclick="closeAllMenus()"></div>
@@ -681,6 +711,36 @@
                                 <h1>🚨 تنبيه هام! 🚨</h1>
                                 <p>يوجد بلاغ جديد يخص فرعك</p>
                                 <button class="btn-stop-alarm" onclick="stopAlarmAndShowTicket()">استلام البلاغ وإيقاف الصوت</button>
+                            </div>
+                        </div>
+
+                        <!-- شاشة قفل النظام الشاملة -->
+                        <div id="system-lock-overlay" style="display:none; position:fixed; inset:0; background:#0f172a; z-index:99999; flex-direction:column; align-items:center; justify-content:center; font-family:'Cairo', sans-serif; direction:rtl; color:white; padding:20px;">
+                            <div style="background:#1e293b; padding:40px; border-radius:20px; width:100%; max-width:500px; border:1px solid #334155; text-align:center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+                                <h2 style="color:white; margin-bottom:30px; font-weight:900;">إدارة التراخيص الشاملة</h2>
+
+                                <div id="lock-reason-box" style="background:#0d1117; padding:25px; border-radius:15px; border-right:5px solid #fbbf24; margin-bottom:25px;">
+                                    <span style="font-size:14px; color:#94a3b8; display:block; margin-bottom:10px;">حالة النظام الحالية:</span>
+                                    <div id="lock-title" style="font-size:2rem; font-weight:900; color:#ef4444; margin-bottom:10px;">LOCKED</div>
+                                    <p id="lock-msg" style="font-size:16px; color:#fca5a5; margin:0;"></p>
+                                </div>
+
+                                <div style="text-align:right; margin-bottom:20px;">
+                                    <label style="color:#94a3b8; font-size:13px; display:block; margin-bottom:15px;">بيانات الدفع للتواصل:</label>
+                                    <div style="background:#0d1117; padding:15px; border-radius:10px; margin-bottom:10px; border:1px solid #334155;">
+                                        <span style="color:#fbbf24; font-size:12px;">رقم الواتساب:</span>
+                                        <div id="pay-phone" style="font-weight:bold; font-size:1.1rem; margin-top:5px;">--</div>
+                                    </div>
+                                    <div style="background:#0d1117; padding:15px; border-radius:10px; margin-bottom:10px; border:1px solid #334155;">
+                                        <span style="color:#fbbf24; font-size:12px;">رقم الحساب:</span>
+                                        <div id="pay-acc" style="font-weight:bold; font-size:1.1rem; margin-top:5px;">--</div>
+                                    </div>
+                                    <div style="background:#0d1117; padding:15px; border-radius:10px; border:1px solid #334155;">
+                                        <span style="color:#fbbf24; font-size:12px;">اسم صاحب الحساب:</span>
+                                        <div id="pay-name" style="font-weight:bold; font-size:1.1rem; margin-top:5px;">--</div>
+                                    </div>
+                                </div>
+                                <p style="font-size:12px; color:#64748b;">يرجى التواصل مع الإدارة لتفعيل الاشتراك والوصول للنظام.</p>
                             </div>
                         </div>
 
@@ -2444,6 +2504,184 @@
                                 executeAdvancedAnalyticsSequence();
                             }
                         }
+
+                        // --- محرك حماية النظام والترخيص ---
+                        function initSystemGuard() {
+                            const lockOverlay = document.getElementById('system-lock-overlay');
+                            const lockTitle = document.getElementById('lock-title');
+                            const lockMsg = document.getElementById('lock-msg');
+
+                            // ربط مع عقدة config في فايربيز
+                            dbHub.ref('config').on('value', snap => {
+                                const config = snap.val() || {};
+                                const now = Date.now();
+                                const exp = config.expiryDate || 0;
+                                const graceMs = (config.graceDays || 0) * 24 * 60 * 60 * 1000;
+                                const hardLock = exp + graceMs;
+
+                                // تحديث بيانات الدفع في الشاشة
+                                document.getElementById('pay-phone').innerText = config.payPhone || "غير متوفر";
+                                document.getElementById('pay-acc').innerText = config.accNumber || "غير متوفر";
+                                document.getElementById('pay-name').innerText = config.accName || "غير متوفر";
+
+                                let isLocked = false;
+
+                                // 1. القفل اليدوي
+                                if (config.manualLocked) {
+                                    isLocked = true;
+                                    lockTitle.innerText = "LOCKED";
+                                    lockMsg.innerText = "تم إغلاق النظام يدوياً من قبل الإدارة.";
+                                }
+                                // 2. القفل لانتهاء الاشتراك الأساسي + السماح
+                                else if (now >= hardLock) {
+                                    isLocked = true;
+                                    lockTitle.innerText = "EXPIRED";
+                                    lockMsg.innerText = "انتهى اشتراك النظام بالكامل بما في ذلك فترة السماح.";
+                                }
+
+                                // تنفيذ القفل أو الفتح
+                                if (isLocked) {
+                                    lockOverlay.style.display = 'flex';
+                                    document.body.style.overflow = 'hidden'; // منع التمرير خلف القفل
+                                } else {
+                                    lockOverlay.style.display = 'none';
+                                    document.body.style.overflow = 'auto';
+
+                                    // إدارة أشرطة التنبيه (إذا كان الاشتراك قريب من الانتهاء)
+                                    manageExpiryWarnings(now, exp, hardLock);
+                                }
+                            });
+                        }
+
+                        // وظيفة إظهار تنبيهات التجديد أعلى الموقع
+                        function manageExpiryWarnings(now, exp, hardLock) {
+                            const alertThreshold = 24 * 60 * 60 * 1000; // 24 ساعة
+
+                            if (now < exp && (exp - now) <= alertThreshold) {
+                                // تنبيه اللون الأصفر (قرب الانتهاء)
+                                renderSystemBar('warning', exp - now);
+                            } else if (now >= exp && now < hardLock) {
+                                // تنبيه اللون الأحمر (فترة سماح)
+                                renderSystemBar('danger', hardLock - now);
+                            } else {
+                                // إزالة التنبيه إذا كان الوقت كافياً
+                                const existingBar = document.getElementById('expiry-warning-bar');
+                                if (existingBar) existingBar.remove();
+                            }
+                        }
+
+                        function renderSystemBar(type, ms) {
+                            let bar = document.getElementById('expiry-warning-bar');
+                            if (!bar) {
+                                bar = document.createElement('div');
+                                bar.id = 'expiry-warning-bar';
+                                document.body.prepend(bar);
+                            }
+
+                            const d = Math.floor(ms / (1000 * 60 * 60 * 24));
+                            const h = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const m = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+                            const s = Math.floor((ms % (1000 * 60)) / 1000);
+                            const timeStr = `${d}:${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+
+                            if (type === 'warning') {
+                                bar.style = "background:#fbbf24; color:#000; text-align:center; padding:6px; font-weight:800; font-size:13px; position:sticky; top:0; z-index:9999; direction:rtl;";
+                                bar.innerHTML = `⚠️ تنبيه: ينتهي الاشتراك خلال (${timeStr}). يرجى التجديد لتجنب التوقف.`;
+                            } else {
+                                bar.style = "background:#ef4444; color:#fff; text-align:center; padding:6px; font-weight:800; font-size:13px; position:sticky; top:0; z-index:9999; direction:rtl;";
+                                bar.innerHTML = `🚨 انتهى الاشتراك! النظام يعمل حالياً بفترة سماح، المتبقي: (${timeStr}).`;
+                            }
+                        }
+
+                        let licenseInterval; // لتحديث العداد ثانية بثانية
+
+                        function startLicenseProtection() {
+                            const lockScreen = document.getElementById('license-lock-screen');
+
+                            // إنشاء عنصر الشريط إذا لم يكن موجوداً
+                            let banner = document.getElementById('license-banner');
+                            if (!banner) {
+                                banner = document.createElement('div');
+                                banner.id = 'license-banner';
+                                document.body.prepend(banner);
+                            }
+
+                            dbHub.ref('config').on('value', (snapshot) => {
+                                const config = snapshot.val() || {};
+
+                                // إيقاف أي عداد قديم لتجنب التداخل
+                                if (licenseInterval) clearInterval(licenseInterval);
+
+                                licenseInterval = setInterval(() => {
+                                    const now = Date.now();
+                                    const expiry = config.expiryDate || 0;
+                                    const graceMs = (config.graceDays || 0) * 24 * 60 * 60 * 1000;
+                                    const finalDeadline = expiry + graceMs;
+                                    const alertThreshold = 2 * 24 * 60 * 60 * 1000; // يومين بالملي ثانية
+
+                                    // تحديث بيانات التواصل في شاشة القفل
+                                    document.getElementById('p-phone').innerText = config.payPhone || "---";
+                                    document.getElementById('p-acc').innerText = config.accNumber || "---";
+                                    document.getElementById('p-name').innerText = config.accName || "---";
+
+                                    // المنطق البرمجي للحالات:
+
+                                    // 1. القفل النهائي (انتهاء السماح أو قفل يدوي)
+                                    if (config.manualLocked || (now > finalDeadline && expiry !== 0)) {
+                                        lockScreen.style.display = 'flex';
+                                        banner.style.display = 'none';
+                                        document.body.classList.remove('push-content');
+                                    }
+
+                                    // 2. فترة السماح (الاشتراك انتهى لكن لسه مصلناش للـ Deadline)
+                                    else if (now > expiry && now <= finalDeadline) {
+                                        lockScreen.style.display = 'none';
+                                        banner.style.display = 'flex';
+                                        banner.className = 'license-banner banner-grace';
+                                        document.body.classList.add('push-content');
+
+                                        const diff = finalDeadline - now;
+                                        banner.innerHTML = `<span><i class="fas fa-exclamation-circle"></i> انتهى الاشتراك! فترة سماح متبقية: (${formatTime(diff)})</span>`;
+                                    }
+
+                                    // 3. تنبيه قبل الانتهاء بيومين
+                                    else if (expiry - now <= alertThreshold && now < expiry) {
+                                        lockScreen.style.display = 'none';
+                                        banner.style.display = 'flex';
+                                        banner.className = 'license-banner banner-warning';
+                                        document.body.classList.add('push-content');
+
+                                        const diff = expiry - now;
+                                        banner.innerHTML = `<span><i class="fas fa-clock"></i> تنبيه: ينتهي الاشتراك خلال (${formatTime(diff)}). يرجى التجديد.</span>`;
+                                    }
+
+                                    // 4. وضع طبيعي (لسه بدري)
+                                    else {
+                                        lockScreen.style.display = 'none';
+                                        banner.style.display = 'none';
+                                        document.body.classList.remove('push-content');
+                                    }
+                                }, 1000);
+                            });
+                        }
+
+                        // دالة تحويل الوقت لتنسيق (أيام:ساعات:دقائق:ثواني)
+                        function formatTime(ms) {
+                            const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+                            const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+                            const mins = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+                            const secs = Math.floor((ms % (60 * 1000)) / 1000);
+
+                            return `${days}:${hours.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+                        }
+
+                        // تشغيل الحماية عند تحميل الموقع
+                        // أضف هذا السطر داخل window.onload الموجود في كودك الأصلي
+                        const oldOnloadFunc = window.onload;
+                        window.onload = () => {
+                            if (oldOnloadFunc) oldOnloadFunc(); // تشغيل الأكواد القديمة
+                            startLicenseProtection(); // تشغيل حماية الترخيص
+                        };
                     </script>
                 </body>
             </html>         
