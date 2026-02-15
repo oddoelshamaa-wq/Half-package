@@ -1254,6 +1254,11 @@
                                     const radarFilter = document.getElementById('radar-branch-filter-select');
                                     const selectedBranch = radarFilter ? radarFilter.value : "SHOW_ALL";
 
+                                    if (radarFilter) {
+                                        radarFilter.innerHTML = '<option value="SHOW_ALL">-- الكل --</option><option value="ALL">الإدارة العليا</option>' + branchListCache.map(b => `<option value="${b}">${b}</option>`).join('');
+                                        radarFilter.value = selectedBranch;
+                                    }
+
                                     // 1. جلب كل الموظفين المسجلين في النظام
                                     const usersSnap = await dbHub.ref('users').once('value');
                                     const allUsers = usersSnap.val() || {};
@@ -1501,7 +1506,14 @@
                                 function initCoreDataListeners() {
                                     dbHub.ref('settings').on('value', snap => {
                                         systemSettingsCache = snap.val() || {};
-                                        branchListCache = systemSettingsCache.branches ? Object.values(systemSettingsCache.branches) : [];
+                                        if (!systemSettingsCache.branches) {
+                                            systemSettingsCache.branches = {
+                                                'branch1': 'فرع 1',
+                                                'branch2': 'فرع 2',
+                                                'branch3': 'فرع 3'
+                                            };
+                                        }
+                                        branchListCache = Object.values(systemSettingsCache.branches);
                                         if(!systemSettingsCache.custom_ranks) systemSettingsCache.custom_ranks = {};
                                         ['ديسبتشر', 'مدير فرع', 'مدير المنطقة', 'كول سنتر'].forEach(r => { if(!systemSettingsCache.custom_ranks[r]) systemSettingsCache.custom_ranks[r] = true; });
                                         syncUiDropdownSelections();
@@ -2349,23 +2361,36 @@ function generateTicketMarkup(id, op, isInteractive, p) {
                                     });
                                 }
 
-                                // 1. دالة تحديث قائمة الفروع في السجل (تأكد من استدعائها في syncUiDropdownSelections)
-                                function updateLogBranchDropdown() {
-                                    const logBrSelect = document.getElementById('log-filter-branch');
-                                    if(logBrSelect) {
-                                        logBrSelect.innerHTML = '<option value="">كل الفروع</option><option value="ALL">الإدارة العليا</option>' +
-                                            branchListCache.map(b => `<option value="${b}">${b}</option>`).join('');
+                                // 2. تعديل دالة مزامنة القوائم لتعمل مع البيانات الحية
+                                function syncUiDropdownSelections() {
+                                    const branchesObj = systemSettingsCache.branches || {};
+                                    const branchesArray = Object.values(branchesObj);
+                                    branchListCache = branchesArray; // تحديث الكاش العام
+
+                                    const isSuper = currentUserSession.role === 'SUPER';
+                                    const isCallCenter = currentUserSession.title === 'كول سنتر';
+
+                                    let branchesHtml = "";
+                                    if (isSuper || isCallCenter) {
+                                        branchesHtml = `<option value="ALL">-- عرض الكل --</option>`;
+                                        branchesArray.forEach(br => {
+                                            branchesHtml += `<option value="${br}">${br}</option>`;
+                                        });
+                                    } else {
+                                        branchesHtml = `<option value="${currentUserSession.branch}">${currentUserSession.branch}</option>`;
                                     }
-                                }
-                                // 1. إضافة فرع للفايربيز
-                                async function addSystemBranchCore() {
-                                    const n = document.getElementById('adm-branch-name-input').value.trim();
-                                    if(n) {
-                                        // الحفظ في فايربيز وليس في المتصفح
-                                        await dbHub.ref('settings/branches').push(n);
-                                        document.getElementById('adm-branch-name-input').value = "";
-                                        renderSystemToast("تمت إضافة الفرع بنجاح", "success");
-                                    }
+
+                                    // تحديث كل القوائم المنسدلة في الصفحة
+                                    const selectors = [
+                                        'global-branch-filter', 'reports-branch-filter',
+                                        'log-filter-branch', 'radar-branch-filter-select',
+                                        'f-branch-master-sel', 'adm-whatsapp-br-sel', 'reg-user-branch-sel-core'
+                                    ];
+
+                                    selectors.forEach(id => {
+                                        const el = document.getElementById(id);
+                                        if (el) el.innerHTML = branchesHtml;
+                                    });
                                 }
 
                                 // 2. حذف فرع من الفايربيز
@@ -2565,9 +2590,23 @@ function generateTicketMarkup(id, op, isInteractive, p) {
                             
                             function runPermissionShieldCheck() {
                                 const p = systemSettingsCache.permissions ? (systemSettingsCache.permissions[currentUserSession.title] || {}) : {};
-                                if(p.admin_access || currentUserSession.role === 'SUPER') document.getElementById('tab-admin').classList.remove('hidden');
-                                document.getElementById('floating-plus-btn').className = (p.create_ticket || currentUserSession.role === 'SUPER' || currentUserSession.title === 'كول سنتر') ? 'floating-action-master' : 'hidden';
-                                if(currentUserSession.role === 'SUPER') document.getElementById('license-admin-section').style.display = 'block';
+
+                                // التأكد من وجود الأزرار قبل محاولة تعديلها
+                                const tabAdmin = document.getElementById('tab-admin');
+                                const floatingBtn = document.getElementById('floating-plus-btn');
+                                const licenseSection = document.getElementById('license-admin-section');
+
+                                if(tabAdmin && (p.admin_access || currentUserSession.role === 'SUPER')) {
+                                    tabAdmin.classList.remove('hidden');
+                                }
+
+                                if(floatingBtn) {
+                                    floatingBtn.className = (p.create_ticket || currentUserSession.role === 'SUPER' || currentUserSession.title === 'كول سنتر') ? 'floating-action-master' : 'hidden';
+                                }
+
+                                if(licenseSection && currentUserSession.role === 'SUPER') {
+                                    licenseSection.style.display = 'block';
+                                }
                             }
 
                             // Helpers
