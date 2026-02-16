@@ -8,7 +8,7 @@
                             <!-- المكتبات الخارجية -->
                             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
                             <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet">
-                            <!-- 1. المكتبات أولاً -->
+                            <!-- 1. المكتبات من روابط جوجل مباشرة لضمان التشغيل -->
                             <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
                             <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
@@ -785,7 +785,7 @@
                                         <button class="nav-link-vip" id="tab-daily" onclick="switchToAppModule('daily')"><i class="fas fa-calendar-check"></i> يومية الأوردرات</button>
                                         <button class="nav-link-vip" id="tab-archive" onclick="switchToAppModule('archive')"><i class="fas fa-database"></i> أرشيف السحابة</button>
                                         <button class="nav-link-vip" id="tab-reports" onclick="switchToAppModule('reports')"><i class="fas fa-chart-line"></i> تقارير الكفاءة</button>
-                                        <button class="nav-link-vip hidden" id="tab-admin" onclick="switchToAppModule('admin')"><i class="fas fa-crown"></i> الإدارة العليا</button>
+                                        <button class="nav-link-vip" id="tab-admin" onclick="switchToAppModule('admin')"><i class="fas fa-crown"></i> الإدارة العليا</button>
                                         <button class="nav-link-vip logout-btn-sidebar" onclick="runSystemLogoutSequence()"><i class="fas fa-power-off"></i> تسجيل الخروج</button>
                                     </div>
                                 </nav>
@@ -1516,6 +1516,18 @@
                                         branchListCache = Object.values(systemSettingsCache.branches);
                                         if(!systemSettingsCache.custom_ranks) systemSettingsCache.custom_ranks = {};
                                         ['ديسبتشر', 'مدير فرع', 'مدير المنطقة', 'كول سنتر'].forEach(r => { if(!systemSettingsCache.custom_ranks[r]) systemSettingsCache.custom_ranks[r] = true; });
+
+                                        // حفظ الرتب الافتراضية في Firebase إذا لم تكن موجودة
+                                        if (Object.keys(systemSettingsCache.custom_ranks).length === 0) {
+                                            const defaultRanks = {
+                                                'ديسبتشر': true,
+                                                'مدير فرع': true,
+                                                'مدير المنطقة': true,
+                                                'كول سنتر': true
+                                            };
+                                            dbHub.ref('settings/custom_ranks').set(defaultRanks);
+                                        }
+
                                         syncUiDropdownSelections();
                                         renderAdminBranchScrollBox();
                                         renderAdminUsersScrollBox();
@@ -1559,47 +1571,26 @@
                                     });
 
                                     // Listener for config to update admin UI
-                                    let currentConfig = {};
                                     dbHub.ref('config').on('value', snap => {
-                                        currentConfig = snap.val() || {};
-                                        // Update admin UI
-                                        document.getElementById('admin-in-phone').value = currentConfig.payPhone || "";
-                                        document.getElementById('admin-in-acc').value = currentConfig.accNumber || "";
-                                        document.getElementById('admin-in-name').value = currentConfig.accName || "";
-                                        document.getElementById('admin-in-grace').value = currentConfig.graceDays || 0;
+                                        const currentConfig = snap.val() || {};
+                                        
+                                        const elementsToUpdate = {
+                                            'admin-in-phone': currentConfig.payPhone,
+                                            'admin-in-acc': currentConfig.accNumber,
+                                            'admin-in-name': currentConfig.accName,
+                                            'admin-in-grace': currentConfig.graceDays
+                                        };
+
+                                        // تحديث الخانات فقط إذا كانت موجودة في الصفحة
+                                        for (const [id, val] of Object.entries(elementsToUpdate)) {
+                                            const el = document.getElementById(id);
+                                            if (el) el.value = val || "";
+                                        }
+
                                         const lockBtn = document.getElementById('admin-lock-btn');
-                                        lockBtn.innerHTML = currentConfig.manualLocked ? '<i class="fas fa-unlock"></i> فتح النظام يدوياً' : '<i class="fas fa-lock"></i> قفل النظام فوراً';
-                                        lockBtn.style.background = currentConfig.manualLocked ? "#10b981" : "#ef4444";
-                                        // Update status
-                                        const now = Date.now();
-                                        const exp = currentConfig.expiryDate || 0;
-                                        const graceMs = (currentConfig.graceDays || 0) * 24 * 60 * 60 * 1000;
-                                        const hardLock = exp + graceMs;
-                                        const display = document.getElementById('admin-ui-countdown');
-                                        const status = document.getElementById('admin-main-status');
-                                        const graceInfo = document.getElementById('admin-grace-info');
-                                        if (currentConfig.manualLocked) {
-                                            status.innerText = "النظام مقفل يدوياً";
-                                            display.innerText = "LOCKED";
-                                            display.style.color = "#ef4444";
-                                            graceInfo.style.display = "none";
-                                        } else if (now < exp) {
-                                            status.innerText = "الاشتراك الأساسي نشط";
-                                            status.style.color = "#10b981";
-                                            display.innerText = formatTime(exp - now);
-                                            display.style.color = "#fbbf24";
-                                            graceInfo.style.display = "none";
-                                        } else if (now >= exp && now < hardLock) {
-                                            status.innerText = "انتهى الاشتراك - فترة سماح";
-                                            status.style.color = "#ef4444";
-                                            display.innerText = formatTime(hardLock - now);
-                                            display.style.color = "#ef4444";
-                                            graceInfo.style.display = "block";
-                                        } else {
-                                            status.innerText = "الاشتراك منتهي تماماً";
-                                            display.innerText = "00:00:00:00";
-                                            display.style.color = "#ef4444";
-                                            graceInfo.style.display = "none";
+                                        if (lockBtn) {
+                                            lockBtn.innerHTML = currentConfig.manualLocked ? '<i class="fas fa-unlock"></i> فتح يدوياً' : '<i class="fas fa-lock"></i> قفل يدوياً';
+                                            lockBtn.style.background = currentConfig.manualLocked ? "#10b981" : "#ef4444";
                                         }
                                     });
                                 }
@@ -2359,22 +2350,21 @@ function generateTicketMarkup(id, op, isInteractive, p) {
                                 function syncUiDropdownSelections() {
                                     const branchesObj = systemSettingsCache.branches || {};
                                     const branchesArray = Object.values(branchesObj);
-                                    const userBranch = currentUserSession.branch;
+                                    branchListCache = branchesArray;
+
                                     const isSuper = currentUserSession.role === 'SUPER';
                                     const isCallCenter = currentUserSession.title === 'كول سنتر';
+                                    const userBranch = currentUserSession.branch;
 
-                                    // بناء خيارات الفروع بناءً على صلاحية المستخدم
+                                    // --- تحديث قائمة الفروع ---
                                     let branchesHtml = "";
                                     if (isSuper || isCallCenter) {
-                                        // الأدمن والكول سنتر يرون كل الفروع
                                         branchesHtml = `<option value="ALL">-- عرض الكل --</option>` +
-                                                    branchesArray.map(b => `<option value="${b}">${b}</option>`).join('');
+                                                      branchesArray.map(b => `<option value="${b}">${b}</option>`).join('');
                                     } else {
-                                        // موظف الفرع يرى فرعه فقط ولا يمكنه اختيار غيره
                                         branchesHtml = `<option value="${userBranch}">${userBranch}</option>`;
                                     }
 
-                                    // تحديث كل القوائم المنسدلة في الموقع
                                     const selectors = [
                                         'global-branch-filter', 'reports-branch-filter',
                                         'log-filter-branch', 'radar-branch-filter-select',
@@ -2385,45 +2375,48 @@ function generateTicketMarkup(id, op, isInteractive, p) {
                                         const el = document.getElementById(id);
                                         if (el) {
                                             el.innerHTML = branchesHtml;
-                                            // إذا كان موظف فرع، نجعل الاختيار ثابت على فرعه
                                             if (!isSuper && !isCallCenter) {
                                                 el.value = userBranch;
-                                                el.disabled = true; // اختياري: لمنع الموظف من محاولة تغيير الاختيار
-                                            } else {
-                                                el.disabled = false;
+                                                el.disabled = true;
                                             }
                                         }
                                     });
 
-                                    // تحديث الرتب
+                                    // --- تحديث قائمة الرتب (حل مشكلتك الأساسية) ---
                                     const ranksObj = systemSettingsCache.custom_ranks || {};
                                     const ranksHtml = Object.keys(ranksObj).map(r => `<option value="${r}">${r}</option>`).join('');
+                                    
                                     ['adm-rank-matrix-sel', 'reg-user-rank-sel-core'].forEach(id => {
                                         const el = document.getElementById(id);
-                                        if (el) el.innerHTML = ranksHtml;
+                                        if (el) {
+                                            el.innerHTML = ranksHtml;
+                                        }
                                     });
+                                    console.log("✅ تم تحديث الرتب والفروع بنجاح");
                                 }
 
                                 // 2. تعديل دالة مزامنة القوائم لتعمل مع البيانات الحية
                                 function syncUiDropdownSelections() {
+                                    // جلب الفروع من الكاش
                                     const branchesObj = systemSettingsCache.branches || {};
                                     const branchesArray = Object.values(branchesObj);
-                                    branchListCache = branchesArray; // تحديث الكاش العام
+                                    branchListCache = branchesArray;
 
                                     const isSuper = currentUserSession.role === 'SUPER';
                                     const isCallCenter = currentUserSession.title === 'كول سنتر';
+                                    const userBranch = currentUserSession.branch;
 
+                                    // تجهيز كود الـ HTML للقوائم
                                     let branchesHtml = "";
                                     if (isSuper || isCallCenter) {
-                                        branchesHtml = `<option value="ALL">-- عرض الكل --</option>`;
-                                        branchesArray.forEach(br => {
-                                            branchesHtml += `<option value="${br}">${br}</option>`;
-                                        });
+                                        branchesHtml = `<option value="ALL">-- عرض الكل --</option>` +
+                                                      branchesArray.map(b => `<option value="${b}">${b}</option>`).join('');
                                     } else {
-                                        branchesHtml = `<option value="${currentUserSession.branch}">${currentUserSession.branch}</option>`;
+                                        // لو موظف عادي يرى فرعه فقط
+                                        branchesHtml = `<option value="${userBranch}">${userBranch}</option>`;
                                     }
 
-                                    // تحديث كل القوائم المنسدلة في الصفحة
+                                    // القوائم التي تحتاج للتحديث
                                     const selectors = [
                                         'global-branch-filter', 'reports-branch-filter',
                                         'log-filter-branch', 'radar-branch-filter-select',
@@ -2432,7 +2425,25 @@ function generateTicketMarkup(id, op, isInteractive, p) {
 
                                     selectors.forEach(id => {
                                         const el = document.getElementById(id);
-                                        if (el) el.innerHTML = branchesHtml;
+                                        if (el) {
+                                            el.innerHTML = branchesHtml;
+                                            if (!isSuper && !isCallCenter) {
+                                                el.value = userBranch;
+                                                el.disabled = true;
+                                            }
+                                        }
+                                    });
+
+                                    // تحديث قائمة الرتب أيضاً
+                                    const ranksObj = systemSettingsCache.custom_ranks || {};
+                                    const ranksArray = Object.keys(ranksObj);
+                                    const ranksHtml = ranksArray.length > 0
+                                        ? ranksArray.map(r => `<option value="${r}">${r}</option>`).join('')
+                                        : '<option value="">-- لا يوجد رتب --</option>';
+
+                                    ['adm-rank-matrix-sel', 'reg-user-rank-sel-core'].forEach(id => {
+                                        const el = document.getElementById(id);
+                                        if (el) el.innerHTML = ranksHtml;
                                     });
                                 }
 
@@ -2465,6 +2476,12 @@ function generateTicketMarkup(id, op, isInteractive, p) {
                                 async function renderBranchWhatsappList() {
                                     const br = document.getElementById('adm-whatsapp-br-sel').value;
                                     const box = document.getElementById('adm-whatsapp-scroll-box');
+
+                                    if (!br || br === 'ALL') {
+                                        box.innerHTML = "<small style='color:gray;'>اختر فرعاً محدداً لعرض الأرقام</small>";
+                                        return;
+                                    }
+
                                     box.innerHTML = "<small>جاري التحميل...</small>";
 
                                     const snap = await dbHub.ref(`settings/whatsapp_phones/${br}`).once('value');
@@ -2482,7 +2499,7 @@ function generateTicketMarkup(id, op, isInteractive, p) {
                                                 </div>`;
                                         });
                                     } else {
-                                        box.innerHTML = "<small>لا توجد أرقام مربوطة بهذا الفرع</small>";
+                                        box.innerHTML = "<small style='color:gray;'>لا توجد أرقام مربوطة بهذا الفرع</small>";
                                     }
                                 }
 
