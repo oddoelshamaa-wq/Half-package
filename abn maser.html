@@ -15,6 +15,11 @@
                     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
                     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
+                    <!-- Flatpickr Date Picker -->
+                    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+                    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+                    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ar.js"></script>
+
                     <!-- 1. استدعاء مكتبات فايربيز (النسخة اللي بتشتغل في المتصفح علطول) -->
                     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
                     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
@@ -1141,14 +1146,6 @@
                                 <div id="branch-quick-stat" style="color: var(--gold-master); font-weight: 900; font-size: 1.1rem;">
                                     <!-- سيظهر هنا اسم الفرع المختار حالياً -->
                                 </div>
-                                <!-- عداد الشكاوى الكلي -->
-                                <div style="display: flex; align-items: center; gap: 15px; background: rgba(239, 68, 68, 0.15); padding: 10px 25px; border-radius: 50px; border: 2px solid var(--danger-pulse);">
-                                    <i class="fas fa-exclamation-triangle" style="color: var(--danger-pulse); font-size: 1.5rem;"></i>
-                                    <div style="text-align: center;">
-                                        <div style="font-size: 0.75rem; color: var(--text-muted-core); font-weight: 600;">إجمالي الشكاوى</div>
-                                        <div id="total-complaints-counter" style="font-size: 1.8rem; font-weight: 950; color: var(--danger-pulse); line-height: 1;">0</div>
-                                    </div>
-                                </div>
                             </div>
 
                             <!-- LIVE MODULE -->
@@ -1220,8 +1217,8 @@
 
                                 <!-- شريط التحكم العلوي -->
                                 <div class="massive-glass-card" style="padding:20px; display:flex; gap:20px; margin-bottom:30px; align-items:flex-end; border-radius:20px;">
-                                    <div style="flex:1;"><label>📅 من:</label><input type="date" id="reports-date-from"></div>
-                                    <div style="flex:1;"><label>📅 إلى:</label><input type="date" id="reports-date-to"></div>
+                                    <div style="flex:1;"><label>📅 من:</label><input type="text" id="reports-date-from" placeholder="اختر التاريخ"></div>
+                                    <div style="flex:1;"><label>📅 إلى:</label><input type="text" id="reports-date-to" placeholder="اختر التاريخ"></div>
                                     <button class="btn-vip-execute-master" style="width:200px;" onclick="executeAdvancedAnalyticsSequence()">توليد الذكاء التحليلي</button>
                                     <button class="btn-vip-execute-master" style="width:100px; background:#1d4ed8;" onclick="exportReportsToExcel()"><i class="fas fa-file-excel"></i></button>
                                 </div>
@@ -1573,10 +1570,22 @@ window.onload = () => {
                                 document.getElementById('ui-user-rank-label').innerText = currentUserSession.title;
                                 document.getElementById('ui-avatar-orb').innerText = currentUserSession.name.charAt(0);
 
-                                // ضبط التواريخ الافتراضية
+// ضبط التواريخ الافتراضية وتفعيل التنسيق (يوم-شهر-سنة)
                                 const todayStr = new Date().toISOString().split('T')[0];
-                                const dateInputs = ['daily-master-date-picker', 'archive-date-from', 'archive-date-to', 'reports-date-from', 'reports-date-to', 'f-date-master'];
-                                dateInputs.forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = todayStr; });
+                                const dateIds = ['daily-master-date-picker', 'archive-date-from', 'archive-date-to', 'reports-date-from', 'reports-date-to', 'f-date-master', 'live-date-filter', 'log-filter-date'];
+
+                                dateIds.forEach(id => {
+                                    const element = document.getElementById(id);
+                                    if (element) {
+                                        // تحويل الخانة لتستخدم مكتبة Flatpickr للتنسيق
+                                        flatpickr(element, {
+                                            locale: "ar",       // اللغة العربية
+                                            dateFormat: "Y-m-d", // التنسيق: سنة-شهر-يوم (متوافق مع قاعدة البيانات)
+                                            defaultDate: todayStr, // التاريخ الحالي
+                                            allowInput: true
+                                        });
+                                    }
+                                });
 
                                 // تحديث البيانات من localStorage
                                 branchListCache = JSON.parse(localStorage.getItem('branches') || '[]');
@@ -2190,6 +2199,53 @@ window.onload = () => {
                             
                             // (ملاحظة: تأكد من استدعاء الجدول الصغير أيضاً إذا كنت تستخدمه)
                             renderSmallStatsTable(branchStats); 
+                        }
+
+                        // دالة إضافة لعرض جدول الإحصائيات الصغير (مضافة لإصلاح الخطأ)
+                        function renderSmallStatsTable(branchStats) {
+                            const container = document.getElementById('summary-percentage-table-container');
+                            if (!container) return;
+                            
+                            let html = `
+                                <table class="premium-matrix" style="font-size: 0.75rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>المطعم</th>
+                                            <th>الطلبات</th>
+                                            <th>الشكاوى</th>
+                                            <th>النسبة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+                            
+                            let totalOrders = 0, totalComplaints = 0;
+                            
+                            branchStats.forEach(stat => {
+                                const percentage = stat.orders > 0 ? ((stat.comps / stat.orders) * 100).toFixed(2) : "0.00";
+                                html += `
+                                    <tr>
+                                        <td style="color: var(--gold-master);">${stat.name}</td>
+                                        <td>${stat.orders}</td>
+                                        <td>${stat.comps}</td>
+                                        <td style="color: ${parseFloat(percentage) > 5 ? 'var(--danger-pulse)' : 'var(--success-glow)'}; font-weight: bold;">${percentage}%</td>
+                                    </tr>`;
+                                totalOrders += stat.orders;
+                                totalComplaints += stat.comps;
+                            });
+                            
+                            const totalPercentage = totalOrders > 0 ? ((totalComplaints / totalOrders) * 100).toFixed(2) : "0.00";
+                            
+                            html += `
+                                        <tr style="background: #1e40af; color: white; font-weight: bold;">
+                                            <td>الإجمالي</td>
+                                            <td>${totalOrders}</td>
+                                            <td>${totalComplaints}</td>
+                                            <td>${totalPercentage}%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>`;
+                            
+                            container.innerHTML = html;
                         }
 
                         function renderPremiumBarChart(stats) {
