@@ -1129,7 +1129,7 @@
                             <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
                             <button class="floating-action-master" id="floating-plus-btn" onclick="openSidebarControl()"><i class="fas fa-plus"></i></button>
 
-                            <!-- إضافة شريط الفلتر العلوي -->
+<!-- إضافة شريط الفلتر العلوي -->
                             <div class="massive-glass-card" style="padding: 15px 25px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;">
                                 <div style="display: flex; align-items: center; gap: 10px;">
                                     <i class="fas fa-filter" style="color: var(--gold-master);"></i>
@@ -1141,6 +1141,14 @@
                                 <div id="branch-quick-stat" style="color: var(--gold-master); font-weight: 900; font-size: 1.1rem;">
                                     <!-- سيظهر هنا اسم الفرع المختار حالياً -->
                                 </div>
+                                <!-- عداد الشكاوى الكلي -->
+                                <div style="display: flex; align-items: center; gap: 15px; background: rgba(239, 68, 68, 0.15); padding: 10px 25px; border-radius: 50px; border: 2px solid var(--danger-pulse);">
+                                    <i class="fas fa-exclamation-triangle" style="color: var(--danger-pulse); font-size: 1.5rem;"></i>
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 0.75rem; color: var(--text-muted-core); font-weight: 600;">إجمالي الشكاوى</div>
+                                        <div id="total-complaints-counter" style="font-size: 1.8rem; font-weight: 950; color: var(--danger-pulse); line-height: 1;">0</div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- LIVE MODULE -->
@@ -1148,17 +1156,50 @@
                                 <h1 style="font-size:2rem; margin-bottom:20px; color:var(--text-pure); display:flex; align-items:center; gap:15px;">
                                     <i class="fas fa-satellite-dish" style="color:var(--gold-master)"></i> البث الحي للبلاغات
                                 </h1>
+                                <!-- فلتر التاريخ للبث المباشر مع أزرار التنقل بين الأيام -->
+                                <div class="massive-glass-card" style="padding:15px 25px; margin-bottom:20px; display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <i class="fas fa-calendar-day" style="color:var(--gold-master);"></i>
+                                        <span style="font-weight:800;">اختر اليوم:</span>
+                                        
+                                        <!-- زر اليوم السابق -->
+                                        <button class="btn-vip-execute-master" style="width:auto; padding:8px 15px; font-size:0.9rem; background:#1d4ed8;" onclick="navigateToPreviousDay()">
+                                            <i class="fas fa-chevron-right"></i> yesterday
+                                        </button>
+                                        
+                                        <!-- حقل التاريخ -->
+                                        <input type="date" id="live-date-filter" onchange="renderLiveBroadcastMatrix()" style="width:200px; margin-bottom:0; padding:8px 15px;">
+                                        
+                                        <!-- زر اليوم الحالي -->
+                                        <button class="btn-vip-execute-master" style="width:auto; padding:8px 20px; font-size:0.9rem; background:#10b981;" onclick="goToToday()">
+                                            <i class="fas fa-home"></i> today
+                                        </button>
+                                        
+                                        <!-- زر اليوم التالي -->
+                                        <button class="btn-vip-execute-master" style="width:auto; padding:8px 15px; font-size:0.9rem; background:#1d4ed8;" onclick="navigateToNextDay()">
+                                            next <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                    </div>
+                                    <div id="live-filter-stats" style="color:var(--text-muted-core); font-size:0.9rem;">
+                                        <!-- سيظهر هنا عدد البلاغات المعروضة -->
+                                    </div>
+                                </div>
                                 <div id="render-live-feed-matrix" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:20px;"></div>
                             </div>
 
                             <!-- DAILY MODULE -->
                             <div id="module-view-daily" class="hidden">
-                                <div class="massive-glass-card" style="padding:80px; margin-bottom:80px;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
+<div class="massive-glass-card" style="padding:80px; margin-bottom:80px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px; flex-wrap:wrap; gap:15px;">
                                         <div>
                                             <h2 style="color:var(--gold-master); font-size:2rem; margin:0;">محرك مدخلات اليومية</h2>
                                         </div>
-                                        <div style="width:250px;"><input type="date" id="daily-master-date-picker" style="font-size:1.2rem;" onchange="loadDailySnapshotData()"></div>
+                                        <div style="display:flex; gap:15px; align-items:center;">
+                                            <div style="width:250px;"><input type="date" id="daily-master-date-picker" style="font-size:1.2rem;" onchange="loadDailySnapshotData()"></div>
+                                            <button class="btn-vip-execute-master" style="width:auto; padding:12px 25px; background:linear-gradient(135deg, #10b981, #059669); font-size:1rem;" onclick="closeDayAndMoveToTomorrow()">
+                                                <i class="fas fa-calendar-check"></i> إغلاق اليوم والانتقال للغد
+                                            </button>
+                                        </div>
                                     </div>
                                     <div id="render-daily-grid-hub" class="daily-matrix-display"></div>
                                 </div>
@@ -1522,7 +1563,7 @@
                             });
                         }
 
-                        window.onload = () => {
+window.onload = () => {
                             const sess = localStorage.getItem('vip_v43_secure_token');
                             if(sess) {
                                 currentUserSession = JSON.parse(sess);
@@ -1549,6 +1590,9 @@
                                 runPermissionShieldCheck(); // تشغيل الصلاحيات
 
                                 initCoreDataListeners(); // تشغيل مراقبة البيانات من Firebase
+                                
+                                // تشغيل نظام إغلاق اليوم التلقائي عند منتصف الليل
+                                initMidnightAutoClose();
                             }
                         };
 
@@ -1949,11 +1993,18 @@
                             const userBranch = currentUserSession.branch;
                             const isMasterAdmin = (currentUserSession.role === 'SUPER' || userBranch === 'ALL');
                             const selectedFilter = document.getElementById('global-branch-filter').value;
+                            
+                            // فلتر التاريخ للبث المباشر
+                            const selectedDateFilter = document.getElementById('live-date-filter').value;
 
                             let html = '';
+                            let visibleCount = 0;
                             Object.keys(complaintsCache).reverse().forEach(id => {
                                 const op = complaintsCache[id];
                                 if(op.status === 'done') return;
+
+                                // فلتر التاريخ - إذا تم اختيار يوم محدد
+                                if (selectedDateFilter && op.date !== selectedDateFilter) return;
 
                                 if (isMasterAdmin) {
                                     // الأدمن يرى ما يختاره من الفلتر
@@ -1964,8 +2015,19 @@
                                 }
 
                                 html += generateTicketMarkup(id, op, true, {});
+                                visibleCount++;
                             });
                             box.innerHTML = html;
+                            
+                            // تحديث عداد البلاغات المعروضة
+                            const statsBox = document.getElementById('live-filter-stats');
+                            if (statsBox) {
+                                if (selectedDateFilter) {
+                                    statsBox.innerHTML = `<i class="fas fa-info-circle"></i> عدد البلاغات المعروضة: <b style="color:var(--gold-master)">${visibleCount}</b>`;
+                                } else {
+                                    statsBox.innerHTML = '';
+                                }
+                            }
                         }
 
                         function runArchiveRefreshSequence() {
@@ -3052,9 +3114,12 @@
                         el.classList.toggle('expanded');
                     }
 
-                    function refreshAllModulesData() {
+function refreshAllModulesData() {
                         const selectedBranch = document.getElementById('global-branch-filter').value;
                         document.getElementById('branch-quick-stat').innerText = selectedBranch === 'ALL' ? "كل المنظومة" : "فرع: " + selectedBranch;
+
+                        // تحديث عداد الشكاوى الإجمالي
+                        updateTotalComplaintsCounter();
 
                         // تحديث كل الأجزاء فوراً
                         renderLiveBroadcastMatrix();
@@ -3063,6 +3128,35 @@
                         if(!document.getElementById('module-view-reports').classList.contains('hidden')) {
                             executeAdvancedAnalyticsSequence();
                         }
+                    }
+
+                    // دالة تحديث عداد الشكاوى الإجمالي
+                    function updateTotalComplaintsCounter() {
+                        const selectedBranch = document.getElementById('global-branch-filter').value;
+                        const counterElement = document.getElementById('total-complaints-counter');
+                        
+                        if (!counterElement) return;
+
+                        let totalComplaints = 0;
+                        const userBranch = currentUserSession.branch;
+                        const isMasterAdmin = (currentUserSession.role === 'SUPER' || userBranch === 'ALL');
+
+                        // حساب الشكاوى بناءً على الفلتر
+                        Object.keys(complaintsCache).forEach(id => {
+                            const op = complaintsCache[id];
+                            if(op.status === 'done') return; // لا نحسب الشكاوى المغلقة
+
+                            if (isMasterAdmin) {
+                                // الأدمن يرى ما يختاره من الفلتر
+                                if(selectedBranch !== 'ALL' && op.branch !== selectedBranch) return;
+                            } else {
+                                // موظف الفرع لا يرى إلا فرعه الخاص
+                                if(op.branch !== userBranch) return;
+                            }
+                            totalComplaints++;
+                        });
+
+                        counterElement.innerText = totalComplaints;
                     }
 
 // --- كود حماية التراخيص والاشتراك V47 ---
@@ -3124,6 +3218,259 @@ function showLockOverlay(msg, exp) {
 
 // تشغيل الفحص فور تحميل الصفحة
 setTimeout(checkSubscriptionStatus, 2000);
+
+// دالة إغلاق اليوم والانتقال ليوم الغد مع إغلاق كل البلاغات والبث
+                async function closeDayAndMoveToTomorrow() {
+                    const currentDateStr = document.getElementById('daily-master-date-picker').value;
+                    
+                    if (!currentDateStr) {
+                        renderSystemToast("يرجى اختيار تاريخ أولاً", "danger");
+                        return;
+                    }
+
+                    // 1. عرض شاشة تأكيد قبل الإغلاق
+                    const result = await Swal.fire({
+                        title: '⚠️ تأكيد إغلاق اليوم',
+                        html: `
+                            <div style="text-align: right; direction: rtl;">
+                                <p style="color: #fbbf24; font-size: 1.1rem;">سيتم إجراء الآتي:</p>
+                                <ul style="text-align: right; padding-right: 20px;">
+                                    <li>إغلاق جميع البلاغات النشطة تلقائياً</li>
+                                    <li>مسح شاشة البث المباشر</li>
+                                    <li>الانتقال لتاريخ يوم جديد</li>
+                                </ul>
+                                <p style="margin-top: 15px; font-weight: bold; color: #ef4444;">تحذير: لا يمكن التراجع عن هذا الإجراء!</p>
+                            </div>
+                        `,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#ef4444',
+                        cancelButtonColor: '#6b7280',
+                        confirmButtonText: '✅ نعم، أغلق اليوم وابدأ جديد',
+                        cancelButtonText: '❌ إلغاء',
+                        background: '#0d1117',
+                        color: '#f0f6fc',
+                        allowOutsideClick: false
+                    });
+
+                    if (!result.isConfirmed) {
+                        return; // المستخدم إلغاء الإجراء
+                    }
+
+                    // 2. إظهار رسالة جاري الإغلاق
+                    renderSystemToast("جاري إغلاق اليوم...", "warning");
+
+                    try {
+                        // 3. إغلاق جميع البلاغات النشطة (تلقائياً)
+                        let closedCount = 0;
+                        const updatePromises = [];
+                        
+                        Object.keys(complaintsCache).forEach(id => {
+                            const op = complaintsCache[id];
+                            // إغلاق البلاغات النشطة فقط (الغير مغلقة)
+                            if (op.status !== 'done') {
+                                const closeLog = {
+                                    time: new Date().toLocaleTimeString('ar-EG'),
+                                    user: currentUserSession.name,
+                                    action: "إغلاق تلقائي بسبب انتهاء اليوم"
+                                };
+                                
+                                // تحديث البلاغ في Firebase
+                                const updatePromise = dbHub.ref('operations/' + id).update({
+                                    status: 'done',
+                                    closed_by: currentUserSession.name,
+                                    closed_at: currentDateStr,
+                                    logs: [...(op.logs || []), closeLog]
+                                });
+                                updatePromises.push(updatePromise);
+                                closedCount++;
+                            }
+                        });
+
+                        // انتظار اكتمال تحديث جميع البلاغات
+                        if (updatePromises.length > 0) {
+                            await Promise.all(updatePromises);
+                        }
+
+                        console.log(`تم إغلاق ${closedCount} بلاغ بنجاح`);
+
+                        // 4. مسح شاشة البث المباشر (إعادة رسمها فارغة)
+                        const liveBox = document.getElementById('render-live-feed-matrix');
+                        if (liveBox) {
+                            liveBox.innerHTML = '';
+                        }
+
+                        // 5. تحديث عداد الشكاوى
+                        updateTotalComplaintsCounter();
+
+                        // 6. تحويل التاريخ ليوم الغد
+                        const [year, month, day] = currentDateStr.split('-').map(Number);
+                        const currentDate = new Date(year, month - 1, day);
+                        
+                        // إضافة يوم واحد
+                        currentDate.setDate(currentDate.getDate() + 1);
+                        
+                        // تنسيق التاريخ الجديد بصيغة YYYY-MM-DD
+                        const nextDayStr = currentDate.getFullYear() + '-' + 
+                            String(currentDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                            String(currentDate.getDate()).padStart(2, '0');
+
+                        // تحديث حقل التاريخ ليوم الغد
+                        document.getElementById('daily-master-date-picker').value = nextDayStr;
+
+                        // 7. تحميل بيانات يوم الغد
+                        await loadDailySnapshotData();
+
+                        // 8. تحديث شاشة البث المباشر لتاريخ اليوم الجديد
+                        renderLiveBroadcastMatrix();
+
+                        // 9. إظهار رسالة نجاح
+                        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                        const formattedDate = currentDate.toLocaleDateString('ar-EG', options);
+                        
+                        renderSystemToast(`✅ تم إغلاق ${closedCount} بلاغ والانتقال ليوم: ${formattedDate}`, "success");
+
+                    } catch (error) {
+                        console.error("خطأ في إغلاق اليوم:", error);
+                        renderSystemToast("حدث خطأ أثناء الإغلاق", "danger");
+                    }
+                }
+
+                // دالة إغلاق اليوم التلقائي (تلقائي عند منتصف الليل)
+                function autoCloseDayAtMidnight() {
+                    // الحصول على الوقت الحالي
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const currentMinute = now.getMinutes();
+                    
+                    // حساب الوقت المتبقي حتى منتصف الليل
+                    const midnight = new Date(now);
+                    midnight.setHours(24, 0, 0, 0);
+                    const msUntilMidnight = midnight - now;
+                    
+                    // تحويل إلى ساعات ودقائق
+                    const hoursUntilMidnight = Math.floor(msUntilMidnight / (1000 * 60 * 60));
+                    const minutesUntilMidnight = Math.floor((msUntilMidnight % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    console.log(`نظام إغلاق اليوم التلقائي: يتبقى ${hoursUntilMidnight} ساعة و ${minutesUntilMidnight} دقيقة حتى منتصف الليل`);
+                    
+                    // التحقق إذا كان الوقت بعد منتصف الليل بقليل (تجنب التكرار)
+                    if (currentHour === 0 && currentMinute < 5) {
+                        // إنهاء اليوم السابق تلقائياً
+                        performEndOfDayReset();
+                    }
+                }
+
+                // دالة إجراء إعادة تعيين نهاية اليوم
+                async function performEndOfDayReset() {
+                    try {
+                        // 1. الحصول على التاريخ الحالي
+                        const today = new Date().toISOString().split('T')[0];
+                        const yesterday = new Date();
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const yesterdayStr = yesterday.toISOString().split('T')[0];
+                        
+                        // 2. حفظ سجل إغلاق اليوم
+                        await dbHub.ref('system_logs/end_of_day').push({
+                            action: 'إغلاق تلقائي ليوم جديد',
+                            previous_date: yesterdayStr,
+                            new_date: today,
+                            timestamp: firebase.database.ServerValue.TIMESTAMP,
+                            closed_by: 'SYSTEM_AUTO'
+                        });
+                        
+                        // 3. تحديث التاريخ في حقل اليومية
+                        document.getElementById('daily-master-date-picker').value = today;
+                        
+                        // 4. تحميل بيانات اليوم الجديد
+                        loadDailySnapshotData();
+                        
+                        // 5. إشعار المستخدم
+                        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                        const formattedDate = new Date().toLocaleDateString('ar-EG', options);
+                        renderSystemToast("🌙 تم إغلاق يوم أمس والبدء في يوم جديد: " + formattedDate, "success");
+                        
+                        console.log("تم تنفيذ إغلاق اليوم التلقائي بنجاح");
+                    } catch (error) {
+                        console.error("خطأ في إغلاق اليوم التلقائي:", error);
+                    }
+                }
+
+                // دوال التنقل بين الأيام
+                function navigateToPreviousDay() {
+                    const dateInput = document.getElementById('live-date-filter');
+                    const currentDate = dateInput.value ? new Date(dateInput.value) : new Date();
+                    currentDate.setDate(currentDate.getDate() - 1);
+                    dateInput.value = currentDate.toISOString().split('T')[0];
+                    renderLiveBroadcastMatrix();
+                    renderSystemToast("تم الانتقال ليوم واحد للخلف", "info");
+                }
+
+                function navigateToNextDay() {
+                    const dateInput = document.getElementById('live-date-filter');
+                    const currentDate = dateInput.value ? new Date(dateInput.value) : new Date();
+                    const today = new Date();
+                    today.setHours(0,0,0,0);
+                    const nextDate = new Date(currentDate);
+                    nextDate.setDate(nextDate.getDate() + 1);
+                    
+                    if (nextDate > today) {
+                        renderSystemToast("لا يمكن الانتقال لأيام المستقبل", "warning");
+                        return;
+                    }
+                    dateInput.value = nextDate.toISOString().split('T')[0];
+                    renderLiveBroadcastMatrix();
+                    renderSystemToast("تم الانتقال ليوم واحد للأمام", "info");
+                }
+
+                function goToToday() {
+                    const dateInput = document.getElementById('live-date-filter');
+                    dateInput.value = '';
+                    renderLiveBroadcastMatrix();
+                    renderSystemToast("تم العودة ليوم اليوم", "success");
+                }
+
+                // تشغيل فحص منتصف الليل عند تحميل الصفحة
+                function initMidnightAutoClose() {
+                    // فحص فوري عند التحميل
+                    autoCloseDayAtMidnight();
+                    
+                    // فحص كل ساعة
+                    setInterval(autoCloseDayAtMidnight, 60 * 60 * 1000); // كل ساعة
+                    
+                    // Also check every minute for more accurate timing
+                    setInterval(autoCloseDayAtMidnight, 60 * 1000); // كل دقيقة
+                }
+
+                // دالة إظهار شاشة تأكيد إغلاق اليوم (للتشغيل اليدوي)
+                function showEndOfDayConfirmation() {
+                    Swal.fire({
+                        title: '⚠️ تأكيد إغلاق اليوم',
+                        html: `
+                            <div style="text-align: right; direction: rtl;">
+                                <p style="color: #fbbf24; font-size: 1.1rem;">سيتم إجراء الآتي:</p>
+                                <ul style="text-align: right; padding-right: 20px;">
+                                    <li>الانتقال إلى تاريخ يوم جديد</li>
+                                    <li>حفظ جميع البيانات الحالية</li>
+                                    <li>إغلاق نافذة اليومية</li>
+                                </ul>
+                                <p style="margin-top: 15px;">هل تريد المتابعة؟</p>
+                            </div>
+                        `,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#10b981',
+                        cancelButtonColor: '#ef4444',
+                        confirmButtonText: '✅ نعم، أغلق اليوم',
+                        cancelButtonText: '❌ إلغاء',
+                        background: '#0d1117',
+                        color: '#f0f6fc'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            closeDayAndMoveToTomorrow();
+                        }
+                    });
+                }
                 </script>
             </body>
         </html>
